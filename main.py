@@ -2,7 +2,6 @@ import re
 import curses
 import time
 import random
-from math import ceil
 
 
 class Tester:
@@ -21,9 +20,7 @@ class Tester:
         if self.quote_source_file:
             """
             May include custom logic for different quote files
-
             ex. for a quotes.json
-
             """
             import json
 
@@ -32,7 +29,7 @@ class Tester:
 
             quotes = data["quotes"]
             # random_quote = r["text"]
-            return random.choice(quotes)["quote"]
+            return random.choice(quotes)["quote"] + " "  # extra space
 
         else:
             from words import english
@@ -42,6 +39,7 @@ class Tester:
                     random.choice(english.words)
                     for _ in range(random.randrange(1, 20))
                 ]
+                + [" "]
             )
 
         return random_quote
@@ -49,14 +47,14 @@ class Tester:
     def set_quote(self):
         self.current_quote = self.get_quote()
         self.current_index = 0
-        self.max_index = len(self.current_quote) - 1
+        self.max_index = len(self.current_quote) - 2
         self.error_count = 0
 
         self.started = False
 
     def word_count(self, index):
         # Use regex to find all words
-        words = re.findall(r"\b\w+\b", self.current_quote[:index])
+        words = re.findall(r"\b\w+\b", self.current_quote[: index + 1])
         return len(words)
 
     def on_key_press(self, ch, timestamp):
@@ -70,7 +68,8 @@ class Tester:
         else:
             self.error_count += 1
 
-        if self.current_index > self.max_index:
+        # At the time there's a extra extra space after the quote
+        if self.current_index >= self.max_index:
             self.end_test = True
 
     def on_special_key_press(self, ch):
@@ -94,9 +93,7 @@ class Tester:
         time_passed = self.last_input_timestamp - self.first_input_timestamp
         if time_passed:
             words = self.word_count(self.current_index) - 1
-            speed = "{:>6}".format(
-                str(round((words * 60 / ceil(time_passed)), 2))
-            )
+            speed = "{:>6}".format(str(round(((words * 60) / time_passed), 2)))
 
         else:
             speed = "   N/A"
@@ -129,9 +126,6 @@ class Tester:
         c = self.current_index
         return self.current_quote[:c], self.current_quote[c:]
 
-    def get_index(self):
-        return self.current_index
-
     def end(self):
         return self.end_test
 
@@ -141,11 +135,11 @@ def main(scr) -> None:
     test.set_quote()
     ch = 0
     while True:
-        scr.clear()
         if 31 < ch < 127:
             test.on_key_press(ch, time.time())
         else:
             test.on_special_key_press(ch)
+            scr.clear()
 
         if test.end():
             break
@@ -158,22 +152,9 @@ def main(scr) -> None:
         scr.addstr(7, 0, s1)
         scr.refresh()
         ch = scr.getch()
-    print(f"\n--- {test.get_stats()} ------------------")
+    print(f"\n--- {test.get_stats()} ------------------\n")
     print(test.current_quote)
 
 
 if __name__ == "__main__":
     curses.wrapper(main)
-
-# def main(stdscr):
-#     curses.initscr()
-#     curses.start_color(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-#     while 1:
-#         stdscr.clear()
-#         c = stdscr.getch()
-#         stdscr.addstr(0, 0, f"{c}")
-#         if c == 27:
-#             break
-#         stdscr.refresh()
-#         print(c)
-# curses.wrapper(main)
